@@ -1,18 +1,21 @@
 {-# OPTIONS_GHC -Wall #-}
+
 -- The above pragma enables all warnings
 
 module Task1 where
+
+import Text.Read (readMaybe)
 
 -- * Expression data type
 
 -- | Representation of integer arithmetic expressions comprising
 -- - Literals of type 'a'
 -- - Binary operations 'Add' and 'Mul'
-data IExpr =
-    Lit Integer
+data IExpr
+  = Lit Integer
   | Add IExpr IExpr
   | Mul IExpr IExpr
-  deriving Show
+  deriving (Show)
 
 -- * Evaluation
 
@@ -26,9 +29,10 @@ data IExpr =
 -- 5
 -- >>> evalIExpr (Add (Mul (Lit 3) (Lit 2)) (Lit 3))
 -- 9
---
 evalIExpr :: IExpr -> Integer
-evalIExpr = error "TODO: define evalIExpr"
+evalIExpr (Lit n) = n
+evalIExpr (Add lexpr rexpr) = evalIExpr lexpr + evalIExpr rexpr
+evalIExpr (Mul lexpr rexpr) = evalIExpr lexpr * evalIExpr rexpr
 
 -- * Parsing
 
@@ -37,6 +41,12 @@ class Parse a where
   -- | Parses value 'a' from given string
   -- wrapped in 'Maybe' with 'Nothing' indicating failure to parse
   parse :: String -> Maybe a
+
+instance Parse Integer where
+  parse = readMaybe
+
+instance Parse Bool where
+  parse = readMaybe
 
 -- | Parses given expression in Reverse Polish Notation
 -- wrapped in 'Maybe' with 'Nothing' indicating failure to parse
@@ -53,9 +63,17 @@ class Parse a where
 -- Nothing
 -- >>> parse "2 3" :: Maybe IExpr
 -- Nothing
---
 instance Parse IExpr where
-  parse = error "TODO: define parse (Parse IExpr)"
+  parse input = go (words input) []
+    where
+      go :: [String] -> [IExpr] -> Maybe IExpr
+      go [] [e] = Just e
+      go [] _ = Nothing
+      go ("*" : ts) (e1 : e2 : es) = go ts (Mul e2 e1 : es)
+      go ("+" : ts) (e1 : e2 : es) = go ts (Add e2 e1 : es)
+      go (t : ts) acc = case (readMaybe t :: Maybe Integer) of
+        Just n -> go ts (Lit n : acc)
+        _ -> Nothing
 
 -- * Evaluation with parsing
 
@@ -75,6 +93,7 @@ instance Parse IExpr where
 -- Nothing
 -- >>> evaluateIExpr "2 3"
 -- Nothing
---
 evaluateIExpr :: String -> Maybe Integer
-evaluateIExpr = error "TODO: define evaluateIExpr"
+evaluateIExpr input = do
+  e <- parse input
+  Just (evalIExpr e)
